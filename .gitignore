@@ -1,3 +1,8 @@
+# editor backup files
+.\#*
+*~
+
+# generated files
 _site/*
 _theme_packages/*
 
