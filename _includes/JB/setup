@@ -2,13 +2,4 @@
   <!--
   - Dynamically set liquid variables for working with URLs/paths
   -->
-  {% if site.JB.setup.provider == "custom" %}
-    {% include custom/setup %}
-  {% else %}
-    {% if site.safe and site.baseurl and site.baseurl != '' %}
-      {% assign BASE_PATH = site.baseurl %}
-    {% else %}
-      {% assign BASE_PATH = nil %}
-    {% endif %}
-  {% endif %}
 {% endcapture %}{% assign jbcache = nil %}
