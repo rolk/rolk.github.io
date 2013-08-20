@@ -1,5 +1,0 @@
-{% capture jbcache %}
-  <!--
-  - Dynamically set liquid variables for working with URLs/paths
-  -->
-{% endcapture %}{% assign jbcache = nil %}
