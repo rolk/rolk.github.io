@@ -31,6 +31,9 @@ baseurl : http://username.github.io
 theme :
   name : twitter
 
+# number of posts to display on the index page
+paginate : 5
+  
 # All Jekyll-Bootstrap specific configurations are namespaced into this hash
 #
 JB :

@@ -1,4 +1,4 @@
-{% for post in site.posts %}
+{% for post in paginator.posts %}
 <div class="page-header">
   <h1><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h1>
 </div>
@@ -13,3 +13,50 @@
   </div>
 </div>
 {% endfor %}
+
+<!-- pagination links -->
+<div class="pagination">
+  <ul class="pages">
+  {% if paginator.previous_page %}
+    <li class="prev">
+      {% if paginator.previous_page == 1 %}
+        <a href="/">&larr;&nbsp;Previous</a>
+      {% else %}
+        <a href="{{ paginator.previous_page_path }}">&larr;&nbsp;Previous</a>
+      {% endif %}
+    </li>
+  {% else %}
+    <li class="prev disabled">
+	  <a>&larr;&nbsp;Previous</a>
+	</li>
+  {% endif %}
+
+    <li class="page">
+      {% if paginator.page == 1 %}
+        <span class="current-page">1</span>
+      {% else %}
+        <a href="/">1</a>
+      {% endif %}
+    </li>
+
+    {% for count in (2..paginator.total_pages) %}
+      <li class="page">
+        {% if count == paginator.page %}
+          <span class="current-page">{{ count }}</span>
+        {% else %}
+          <a href="/page{{ count }}">{{ count }}</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+
+  {% if paginator.next_page %}
+    <li class="next">
+      <a href="{{ paginator.next_page_path }}">Next&nbsp;&rarr;</a>
+    </li>
+  {% else %}
+    <li class="next disabled">
+	  <a>Next&nbsp;&rarr;</a>
+	</li>
+  {% endif %}
+  </ul>
+</div>
