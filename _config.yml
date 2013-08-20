@@ -2,6 +2,10 @@
 # For more see: http://jekyllrb.com/docs/permalinks/
 permalink: /:year/:month/:day/:title 
 
+# use this text processor
+markdown: rdiscount
+
+# allow source code highlighting
 pygments: true
 
 # Themes are encouraged to use these universal variables 
