@@ -77,3 +77,9 @@
   -ms-user-select: none;
   user-select: none;
 }
+
+/* prevent wrapping in code snippets */
+.highlight pre {
+  white-space: pre;
+  overflow-x: auto;
+  width: inherit; }
