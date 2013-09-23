@@ -3,12 +3,14 @@ You can use this repository as a template to create a blog on [GitHub Pages](htt
 Setting up your own blog
 ========================
 
-1. Clone the [Jekyll Bootstrap](http://jekyllbootstrap.com/) repository:
+1. [Create the repository](https://help.github.com/articles/create-a-repo) "username.github.io" on GitHub (yes, the domain name is supposed to be part of the repo name (and also yes, you are supposed to substitute `username` with your own GitHub username)).
+
+2. Clone the [Jekyll Bootstrap](http://jekyllbootstrap.com/) repository:
 ```sh
-git clone http://github.com/rolk/jekyll-bootstrap
+git clone http://github.com/rolk/jekyll-bootstrap username.github.io
 ```
 
-2. Change the five fields title, tagline, author name and email and baseurl in the file `_config.yml`:
+3. Change the five fields title, tagline, author name and email and baseurl in the file `_config.yml`:
 ```
 title : Jekyll Bootstrap
 tagline: Site Tagline
@@ -18,8 +20,6 @@ author :
 baseurl : http://username.github.io
 ```
 	
-3. [Create the repository](https://help.github.com/articles/create-a-repo) "username.github.io" on GitHub (yes, the domain name is supposed to be part of the repo name (and also yes, you are supposed to substitute `username` with your own GitHub username)).
-
 4. Connect the local clone of Jekyll Bootstrap to your newly created repository:
 ```sh
 git remote rm origin
