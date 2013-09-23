@@ -31,7 +31,7 @@ git remote add origin ssh://git@github.com/username/username.github.io
 git push origin master
 ```
 
-After 10 minutes or so, the blog will be ready.
+After 10 minutes or so, the blog will be ready at [http://username.github.io](http://username.github.io).
 
 Writing posts
 =============
