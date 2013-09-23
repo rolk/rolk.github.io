@@ -62,3 +62,12 @@ git add _posts/yyyy-mm-dd-subject.md
 git commit
 git push origin master
 ```
+
+Testing locally
+===============
+If you have the Jekyll Ruby gem installed locally, you can test the site by issuing the command:
+```sh
+jekyll serve --watch --baseurl ""
+```
+
+and then browse to `http://localhost:4000`.
