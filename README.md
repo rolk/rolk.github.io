@@ -44,6 +44,9 @@ Writing posts
 title: "Something"
 layout: post
 date: yyyy-mm-dd hh:ss +0200
+tags:
+- Foo
+- Bar
 ---
 ```
 
