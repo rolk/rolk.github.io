@@ -78,6 +78,13 @@ session optional        pam_cgroup.so
 EOF
 {% endhighlight %}
 
+We also need access to the cpuset device, if this is not already mounted:
+
+{% highlight sh %}
+[ "$(sed "/^#/d;s/\t/ /g" /etc/fstab | tr -s " " | cut -f3 -d" " | grep -c "cpuset")" -eq 0 ] && \
+    echo "nodev /dev/cpuset cpuset" | sudo sh -c "cat >> /etc/fstab"
+{% endhighlight %}
+
 Picking Passwords
 -----------------
 SLURM will store the accounting information in a database. Unfortunately, Postgres-based accounting is not mature yet, SQLite-based accounting is non-existing and file-based accounting does not work properly and is deprecated. Thus, we are stuck with using MySQL, which I have to admin is not my favorite to have running on the server.
@@ -156,6 +163,8 @@ A problem with Ubuntu 14.04 is that daemons started by SysV-init files will get 
 sudo apt-get install -y slurm-llnl-slurmdbd slurm-llnl-basic-plugins slurm-llnl slurm-llnl-torque libswitch-perl
 {% endhighlight %}
 
+Configuration
+-------------
 Basically, the configuration file for the authorization daemon just specifies how to connect to the database (we'll add entries later):
 
 {% highlight sh %}
@@ -185,11 +194,17 @@ StorageLoc=slurm_acct_db
 EOF
 {% endhighlight %}
 
-The main configuration file is where we setup how the cluster should behave. Notable options here are `proctrack/cgroup` to have SLURM use a cgroup to put the jobs in, and `sched\backfill` which indicates that the system should try to run several jobs to keep full utilization.
+The main configuration file is where we setup how the cluster should behave. Notable options here are `proctrack/cgroup` to have SLURM use a cgroup to put the jobs in, and `sched/backfill` which indicates that the system should try to run several jobs to keep full utilization.
 
 Queues in SLURM are called "partitions". A set of nodes can be shared between partitions, or they can belong exclusively to only one. Each partition have a priority in case a node is covered by more than one.
 
 We'll set up three partitions, which all contains the one node that is the computation server.
+
+Limitations to the cluster in SLURM is set up using "associations", which are tuples of: (cluster, account, user, partition) with some properties attached. When we add an association, we say that the user can submit a job to this queue (partition), charging the CPU time to that project (account). Use `sacctmgr show assoc format=account,user,partition` to see the current list.
+
+Unfortunately, associations are hierarchial in the order listed above, meaning that we cannot grant access to a partition for an entire account, but must do it per-user. From version 15.08 and out we should be able to use an orthogonal "quality of service" property to specify the priorities, but in the current version 2.6, it cannot preempt jobs into standby, only cancellation. Thus, for now, we set PreemptType to partition_prio which means that the priority of the queue is used.
+
+To have the cluster only accept submissions to queues that have been explicitly allowed, we set `AccountingStorageEnforce=limits`.
 
 {% highlight sh %}
 sudo touch /etc/slurm-llnl/slurm.conf
@@ -217,6 +232,7 @@ SlurmdPidFile=/var/run/slurmd%n.pid
 SwitchType=switch/none
 ProctrackType=proctrack/cgroup
 MpiDefault=none
+RebootProgram=/sbin/reboot
 
 # get back on track as soon as possible
 ReturnToService=2
@@ -227,6 +243,7 @@ SlurmdLogFile=/var/log/slurm-llnl/slurmd.log
 
 # accounting
 AccountingStorageType=accounting_storage/slurmdbd
+AccountingStorageEnforce=limits
 
 # checkpointing
 #CheckpointType=checkpoint/blcr
@@ -242,6 +259,8 @@ PriorityWeightFairshare=1000
 PriorityWeightJobSize=250
 PriorityWeightPartition=1000
 PriorityWeightQOS=0
+PreemptMode=suspend,gang
+PreemptType=preempt/partition_prio
 
 # wait 30 minutes before assuming that a node is dead
 SlurmdTimeout=1800
@@ -249,17 +268,18 @@ SlurmdTimeout=1800
 # core and memory is the scheduling units
 # task/cgroup controls cpuset, memory and devices cgroups
 SelectType=select/cons_res
-SelectTypeParameters=CR_Core_Memory
+SelectTypeParameters=CR_Core_Memory,CR_CORE_DEFAULT_DIST_BLOCK
 TaskPlugin=task/affinity,task/cgroup
+TaskPluginParam=Cpusets,Cores
 
 # computing nodes
 NodeName=$(hostname -s) RealMemory=$(grep "^MemTotal:" /proc/meminfo | awk '{print int($2/1024)}') Sockets=$(grep "^physical id" /proc/cpuinfo | sort -uf | wc -l) CoresPerSocket=$(grep "^siblings" /proc/cpuinfo | head -n 1 | awk '{print $3}') ThreadsPerCore=1 State=UNKNOWN
 
 # partitions
 PartitionName=DEFAULT  Nodes=$(hostname -s) Shared=FORCE:1 MaxTime=INFINITE State=UP
-PartitionName=student  Priority=10 PreemptMode=SUSPEND,GANG Default=YES
-PartitionName=academic Priority=20 PreemptMode=SUSPEND,GANG Default=NO
-PartitionName=industry Priority=30 PreemptMode=OFF          Default=NO
+PartitionName=student  Priority=10 Default=YES
+PartitionName=academic Priority=20 Default=NO
+PartitionName=industry Priority=30 Default=NO
 EOF
 {% endhighlight %}
 
@@ -290,6 +310,8 @@ All the configuration is now done, and we are ready to start the services. On Ub
 sudo shutdown -r now
 {% endhighlight %}
 
+If you do minor changes to the configuration file, you can use the `scontrol reconfig` command to have the daemon reread slurm.conf.
+
 Accounting
 ----------
 
@@ -309,15 +331,21 @@ sudo sacctmgr -i add account student Description="Student" Organization="UiB"
 Finally, we need some users that can fill the accounts. The names of the users should be the system name that you logon with.
 
 {% highlight sh %}
-sudo sacctmgr -i create user scott account=researcher defaultaccount=researcher adminlevel=Operator
+sudo sacctmgr -i create user scott defaultaccount=researcher adminlevel=Operator partition=student
+sudo sacctmgr -i create user scott account=researcher partition=academic
+
 sudo sacctmgr show user name=scott
+sudo sacctmgr show assoc format=account,user,partition
 {% endhighlight %}
+
+Notice that we first create the user and give default account and partition. The next association is set up by "creating" the user once more, but with a different account and/or partition.
 
 Testing the installation
 ------------------------
 Use these commands to check that the cluster is live and ready to accept commands:
 
 {% highlight sh %}
+sinfo
 sacct
 {% endhighlight %}
 
@@ -328,20 +356,44 @@ sudo apt-get install -y build-essential
 mkdir ~/stream
 pushd ~/stream
 wget http://www.cs.virginia.edu/stream/FTP/Code/stream.c
-sed -i "s/^\(\#   define NTIMES[\ \t]\+\)\(.*\)/\1100/" stream.c
-gcc -fopenmp stream.c -o stream
+sed "s/^\(\#   define NTIMES[\ \t]\+\)\(.*\)/\11000/" stream.c >
+large.c
+gcc -fopenmp large.c -o large
+sed "s/^\(\#   define NTIMES[\ \t]\+\)\(.*\)/\1100/" stream.c > medium.c
+gcc -fopenmp medium.c -o medium
 {% endhighlight %}
 
+We'll submit a background workload to the queue with least priority:
+
 {% highlight sh %}
-cat > ~/stream/myjob <<EOF
+cat > ~/stream/large.job <<EOF
 #!/bin/bash
 #SBATCH --partition=student
-#SBATCH --nodes=1
-#SBATCH --tasks-per-node=1
-#SBATCH --cpus-per-task=2
+#SBATCH --account=researcher
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=128M
-#SBATCH --job-name="Foo"
-OMP_NUM_THREADS=\$SLURM_JOB_CPUS_PER_NODE ./stream
+#SBATCH --job-name="Large"
+OMP_NUM_THREADS=\$SLURM_JOB_CPUS_PER_NODE ./large
 EOF
-sbatch ~/stream/myjob
+sbatch ~/stream/large.job
 {% endhighlight %}
+
+"Task" is the term for a process, and "cpu" is used for a core. An MPI process will typically have several tasks with one cpu per task, and an OpenMP process will have one task but use several cpus per task.
+
+We then submit a smaller job to a queue with higher priority, here shown using the PBS/TORQUE compatibility layer for illustration. Notice that the TORQUE wrapper does not set the PBS_NUM_PPN environment variable, so you will have to set the number of cores as a constant in the script.
+
+{% highlight sh %}
+cat > ~/stream/medium.job <<EOF
+#!/bin/bash
+#PBS -q academic
+#PBS -W researcher
+#PBS -l nodes=1:ppn=4
+#PBS -l pmem=128MB
+#PBS -N Medium
+OMP_NUM_THREADS=4 ./medium
+EOF
+qsub ~/stream/medium.job
+{% endhighlight %}
+
