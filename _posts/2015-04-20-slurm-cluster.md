@@ -78,13 +78,6 @@ session optional        pam_cgroup.so
 EOF
 {% endhighlight %}
 
-We also need access to the cpuset device, if this is not already mounted:
-
-{% highlight sh %}
-[ "$(sed "/^#/d;s/\t/ /g" /etc/fstab | tr -s " " | cut -f3 -d" " | grep -c "cpuset")" -eq 0 ] && \
-    echo "nodev /dev/cpuset cpuset" | sudo sh -c "cat >> /etc/fstab"
-{% endhighlight %}
-
 Picking Passwords
 -----------------
 SLURM will store the accounting information in a database. Unfortunately, Postgres-based accounting is not mature yet, SQLite-based accounting is non-existing and file-based accounting does not work properly and is deprecated. Thus, we are stuck with using MySQL, which I have to admin is not my favorite to have running on the server.
@@ -270,7 +263,6 @@ SlurmdTimeout=1800
 SelectType=select/cons_res
 SelectTypeParameters=CR_Core_Memory,CR_CORE_DEFAULT_DIST_BLOCK
 TaskPlugin=task/affinity,task/cgroup
-TaskPluginParam=Cpusets,Cores
 
 # computing nodes
 NodeName=$(hostname -s) RealMemory=$(grep "^MemTotal:" /proc/meminfo | awk '{print int($2/1024)}') Sockets=$(grep "^physical id" /proc/cpuinfo | sort -uf | wc -l) CoresPerSocket=$(grep "^siblings" /proc/cpuinfo | head -n 1 | awk '{print $3}') ThreadsPerCore=1 State=UNKNOWN
