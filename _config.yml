@@ -35,6 +35,9 @@ baseurl : http://rolk.github.io
 theme_settings :
   name : twitter
 
+# now necessary to turn on pagination
+gems: [jekyll-paginate]
+
 # number of posts to display on the index page
 paginate : 5
   
