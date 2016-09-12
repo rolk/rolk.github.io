@@ -68,7 +68,13 @@ git push origin master
 
 Testing locally
 ===============
-If you have the Jekyll Ruby gem installed locally, you can test the site by issuing the command:
+Install the Jekyll Ruby-gem and support plug-ins:
+
+```sh
+sudo sh -c 'umask 022; gem install jekyll jekyll-paginate kramdown rouge'
+```
+
+Now that you have Jekyll installed locally, you can test the site by issuing the command:
 ```sh
 jekyll serve --watch --baseurl ""
 ```
