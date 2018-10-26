@@ -1,7 +1,7 @@
 ---
 title: "Upgrading Python setuptools on Debian/Ubuntu"
 layout: post
-date: 2018-10-25 12:30 +0200
+date: 2018-10-25 16:30 +0200
 tags:
 - python
 - ubuntu 
@@ -39,19 +39,34 @@ versions of Python packages with pip, that you have already installed
 system version of with apt. Sometimes, when you are in setup.py
 scripts, you'll see the old version; otherwise you'll not.
 
-Fixing this is not just a matter of diverting away the obsolete
-wheels, but is rather a bit convoluted, because venv, the package that
-sets up virtualenv, calls a script named ensurepip to "install" pip in
-your virtualenv, and this also runs in isolated mode. This script,
-amongst many other things, copy the wheels from
-/usr/share/python-wheel into a a sub-directory share/python-wheels in
-your virtualenv directory, and it is a bit picky about how the source
-directory looks like. There should for instance only be one version of
-each wheel, and it has a predefined list of wheels that it looks
-for. If there is any errors, the exceptions that are raised are
-typically squashed and only a generic message about ensurepip is
-shown. (You can debug by running the command that it list as failed,
-though).
+If you don't want to tamper with your system, or you don't have
+administrative rights, then you can simply issue these commands in
+your virtualenv:
+
+{% highlight sh %}
+cd env/share/python-wheels
+rm -f setuptools-*.whl
+rm -f pkg_resources-*.whl
+python3 -m pip download setuptools
+cd -
+{% endhighlight %}
+
+assuming that your virtualenv is installed in the local subdirectory
+env/.
+
+Fixing this at the system level, however, is not just a matter of
+diverting away the obsolete wheels, but is rather a bit convoluted,
+because venv, the package that sets up virtualenv, calls a script
+named ensurepip to "install" pip in your virtualenv, and this also
+runs in isolated mode. This script, amongst many other things, copy
+the wheels from /usr/share/python-wheel into a a sub-directory
+share/python-wheels in your virtualenv directory, and it is a bit
+picky about how the source directory looks like. There should for
+instance only be one version of each wheel, and it has a predefined
+list of wheels that it looks for. If there is any errors, the
+exceptions that are raised are typically squashed and only a generic
+message about ensurepip is shown. (You can debug by running the
+command that it list as failed, though).
 
 Furthermore, the pkg_resources wheel that is present does not really
 exist as its own package. The files inside that wheel is usually
